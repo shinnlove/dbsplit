@@ -1,7 +1,12 @@
 package com.robert.dbsplit.core;
 
 public enum SplitStrategyType {
-	VERTICAL("vertical"), HORIZONTAL("horizontal");
+
+	/** 垂直业务拆分 */
+	VERTICAL("vertical"),
+
+	/** 水平分表拆分 */
+	HORIZONTAL("horizontal");
 
 	private String value;
 
@@ -12,4 +17,5 @@ public enum SplitStrategyType {
 	public String toString() {
 		return value;
 	}
+
 }

@@ -1,5 +1,8 @@
 package com.robert.dbsplit.core;
 
+/**
+ * 水平哈希拆分策略。
+ */
 public class HorizontalHashSplitStrategy implements SplitStrategy {
 	private int portNum;
 	private int dbNum;

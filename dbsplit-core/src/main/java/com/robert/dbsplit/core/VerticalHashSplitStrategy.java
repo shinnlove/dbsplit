@@ -1,8 +1,17 @@
 package com.robert.dbsplit.core;
 
+/**
+ * 垂直拆分策略。
+ *
+ * 策略：不停的除以实例数、数据库数量，最后取余数据库数量或表数量。
+ */
 public class VerticalHashSplitStrategy implements SplitStrategy {
+
+	/** 实例数、不同实例运行在不同端口号上 */
 	private int portNum;
+	/** 数据库数量 */
 	private int dbNum;
+	/** 表数量 */
 	private int tableNum;
 
 	public VerticalHashSplitStrategy() {
