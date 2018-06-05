@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+	http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd">
+
+	<bean
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations" value="classpath:spring/dbsplit-test.properties" />
+	</bean>
+	
+	<bean id="idService" class="com.robert.vesta.service.factory.IdServiceFactoryBean"
+		init-method="init">
+		<property name="providerType" value="PROPERTY" />
+		
+		<property name="machineId" value="${vesta.machine}" />
+	</bean>
+
+	<!-- SplitBizTemplate Entry -->
+
+	<bean name="simpleSplitJdbcTemplate" class="com.robert.dbsplit.core.SimpleSplitJdbcTemplate">
+		<property name="splitTablesHolder" ref="splitTablesHolder" />
+		<property name="readWriteSeparate" value="${dbsplit.readWriteSeparate}" />
+	</bean>
+
+	<!-- SplitTablesHolder -->
+
+	<bean name="splitTablesHolder" class="com.robert.dbsplit.core.SplitTablesHolder"
+		init-method="init">
+		<property name="splitTables">
+			<list>
+				<ref bean="splitTable" />
+			</list>
+		</property>
+	</bean>
+
+	<!-- SplitTables -->
+
+	<bean name="splitTable" class="com.robert.dbsplit.core.SplitTable"
+		init-method="init">
+
+		<property name="dbNamePrefix" value="test_db" />
+		<property name="tableNamePrefix" value="TEST_TABLE" />
+
+		<property name="dbNum" value="2" />
+		<property name="tableNum" value="4" />
+
+		<property name="splitStrategyType" value="HORIZONTAL" />
+		<property name="splitNodes">
+			<list>
+				<ref bean="splitNode1" />
+				<ref bean="splitNode2" />
+			</list>
+		</property>
+
+		<property name="readWriteSeparate" value="true" />
+
+	</bean>
+
+	<!-- SplitNodes -->
+
+	<bean name="splitNode1" class="com.robert.dbsplit.core.SplitNode">
+		<property name="masterTemplate" ref="masterTemplate0" />
+		<property name="slaveTemplates">
+			<list>
+				<ref bean="slaveTemplate00"></ref>
+			</list>
+		</property>
+	</bean>
+
+	<bean name="splitNode2" class="com.robert.dbsplit.core.SplitNode">
+		<property name="masterTemplate" ref="masterTemplate1" />
+		<property name="slaveTemplates">
+			<list>
+				<ref bean="slaveTemplate10"></ref>
+			</list>
+		</property>
+	</bean>
+
+	<!-- Spring JdbcTemplates -->
+
+	<bean id="masterTemplate0" class="org.springframework.jdbc.core.JdbcTemplate"
+		abstract="false" lazy-init="false" autowire="default"
+		dependency-check="default">
+		<property name="dataSource">
+			<ref bean="masterDatasource0" />
+		</property>
+	</bean>
+
+	<bean id="slaveTemplate00" class="org.springframework.jdbc.core.JdbcTemplate"
+		abstract="false" lazy-init="false" autowire="default"
+		dependency-check="default">
+		<property name="dataSource">
+			<ref bean="slaveDatasource00" />
+		</property>
+	</bean>
+
+	<bean id="masterTemplate1" class="org.springframework.jdbc.core.JdbcTemplate"
+		abstract="false" lazy-init="false" autowire="default"
+		dependency-check="default">
+		<property name="dataSource">
+			<ref bean="masterDatasource1" />
+		</property>
+	</bean>
+
+	<bean id="slaveTemplate10" class="org.springframework.jdbc.core.JdbcTemplate"
+		abstract="false" lazy-init="false" autowire="default"
+		dependency-check="default">
+		<property name="dataSource">
+			<ref bean="slaveDatasource10" />
+		</property>
+	</bean>
+
+	<!-- DataSources -->
+
+	<bean name="baseDataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+		<property name="driverClass">
+			<value>com.mysql.jdbc.Driver</value>
+		</property>
+		<property name="minPoolSize">
+			<value>5</value>
+		</property>
+		<property name="maxPoolSize">
+			<value>30</value>
+		</property>
+		<property name="idleConnectionTestPeriod">
+			<value>20</value>
+		</property>
+		<property name="maxIdleTime">
+			<value>25</value>
+		</property>
+		<property name="breakAfterAcquireFailure">
+			<value>false</value>
+		</property>
+		<property name="checkoutTimeout">
+			<value>3000</value>
+		</property>
+		<property name="acquireRetryAttempts">
+			<value>50</value>
+		</property>
+		<property name="acquireRetryDelay">
+			<value>1000</value>
+		</property>
+	</bean>
+
+	<bean id="masterDatasource0" parent="baseDataSource">
+		<property name="jdbcUrl">
+			<value>jdbc:mysql://${dbsplit.master0.url}/?useUnicode=true&amp;characterEncoding=UTF-8&amp;autoReconnect=true</value>
+		</property>
+		<property name="user">
+			<value>${dbsplit.user}</value>
+		</property>
+		<property name="password">
+			<value>${dbsplit.password}</value>
+		</property>
+	</bean>
+
+	<bean id="slaveDatasource00" parent="baseDataSource">
+		<property name="jdbcUrl">
+			<value>jdbc:mysql://${dbsplit.slave0.url}/?useUnicode=true&amp;characterEncoding=UTF-8&amp;autoReconnect=true</value>
+		</property>
+		<property name="user">
+			<value>${dbsplit.user}</value>
+		</property>
+		<property name="password">
+			<value>${dbsplit.password}</value>
+		</property>
+	</bean>
+
+	<bean id="masterDatasource1" parent="baseDataSource">
+		<property name="jdbcUrl">
+			<value>jdbc:mysql://${dbsplit.master1.url}/?useUnicode=true&amp;characterEncoding=UTF-8&amp;autoReconnect=true</value>
+		</property>
+		<property name="user">
+			<value>${dbsplit.user}</value>
+		</property>
+		<property name="password">
+			<value>${dbsplit.password}</value>
+		</property>
+	</bean>
+
+	<bean id="slaveDatasource10" parent="baseDataSource">
+		<property name="jdbcUrl">
+			<value>jdbc:mysql://${dbsplit.slave1.url}/?useUnicode=true&amp;characterEncoding=UTF-8&amp;autoReconnect=true</value>
+		</property>
+		<property name="user">
+			<value>${dbsplit.user}</value>
+		</property>
+		<property name="password">
+			<value>${dbsplit.password}</value>
+		</property>
+	</bean>
+</beans>
