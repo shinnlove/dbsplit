@@ -16,23 +16,30 @@ public class SplitSqlParserDefImpl implements SplitSqlParser {
 	private static final Logger log = LoggerFactory
 			.getLogger(SplitSqlParserDefImpl.class);
 
+	/** 缓存尺寸 */
 	private static final int CACHE_SIZE = 1000;
 
 	@SuppressWarnings("unchecked")
+	/** 缓存池，存放已解析过的sql(不用重复解析) */
 	private Map<String, SplitSqlStructure> cache = new LRUMap(CACHE_SIZE);
 
 	public SplitSqlParserDefImpl() {
 		log.info("Default SplitSqlParserDefImpl is used.");
 	}
 
+	/**
+	 * @see com.robert.dbsplit.core.sql.parser.SplitSqlParser#parseSplitSql(String)
+	 */
 	public SplitSqlStructure parseSplitSql(String sql) {
 		SplitSqlStructure splitSqlStructure = cache.get(sql);
 
 		// Don't use if contains then get, race conditon may happens due to LRU
 		// map
+		// 这条SQL已经解析过就直接返回
 		if (splitSqlStructure != null)
 			return splitSqlStructure;
 
+		// 第一次解析SQL
 		splitSqlStructure = new SplitSqlStructure();
 
 		String dbName = null;
@@ -45,7 +52,11 @@ public class SplitSqlParserDefImpl implements SplitSqlParser {
 		StringBuffer sbSebsequentPart = new StringBuffer();
 
 		// Need to opertimize for better performance
+		// 下面这段代码为了更好地并发需要优化
 
+		/**
+		 * 阿里巴巴德鲁伊框架`druid`，token是什么？
+		 */
 		Lexer lexer = new Lexer(sql);
 		do {
 			lexer.nextToken();

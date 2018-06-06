@@ -1,5 +1,8 @@
 package com.robert.dbsplit.core;
 
+/**
+ * 切分策略。
+ */
 public interface SplitStrategy {
 
 	/**

@@ -2,19 +2,34 @@ package com.robert.dbsplit.core;
 
 import java.util.List;
 
+/**
+ * 分表策略，可以配置成spring的bean。
+ *
+ * 一个`SplitTable`包含了这个表分片有多少个数据库和表信息。
+ * 保存的`SplitNode`集合代表这个`SplitTable`会分布到多少个数据库实例上。
+ */
 public class SplitTable {
+
 	private String dbNamePrefix;
 	private String tableNamePrefix;
 
 	private int dbNum;
 	private int tableNum;
 
+	/** 分表策略标记，默认垂直分表，可以在springbean中配置。 */
 	private SplitStrategyType splitStrategyType = SplitStrategyType.VERTICAL;
+	/** 具体分表策略类(根据标记来实例化) */
 	private SplitStrategy splitStrategy;
+
+	/** 多个分割结点，数据库实例。 */
 	private List<SplitNode> splitNodes;
 
+	/** 读写分离标记 */
 	private boolean readWriteSeparate = true;
 
+	/**
+	 * spring的bean的init-method。
+	 */
 	public void init() {
 		if (splitStrategyType == SplitStrategyType.VERTICAL)
 			this.splitStrategy = new VerticalHashSplitStrategy(

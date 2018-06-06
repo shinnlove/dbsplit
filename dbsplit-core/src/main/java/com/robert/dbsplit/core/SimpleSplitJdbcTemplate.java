@@ -11,6 +11,9 @@ import com.robert.dbsplit.core.sql.util.OrmUtil;
 import com.robert.dbsplit.core.sql.util.SqlUtil;
 import com.robert.dbsplit.core.sql.util.SqlUtil.SqlRunningBean;
 
+/**
+ * 主要提供针对Java Bean的增删改查操作。
+ */
 public class SimpleSplitJdbcTemplate extends SplitJdbcTemplate implements
 		SimpleSplitJdbcOperations {
 
@@ -129,6 +132,21 @@ public class SimpleSplitJdbcTemplate extends SplitJdbcTemplate implements
 
 	}
 
+	/**
+	 * 传入分隔键、返回值类型、某个字段名称、字段的值，查询结果。
+	 *
+	 * 以分库分表的方式查询，`select XXX_0 from YYY_1 where 字段名=字段值`。
+	 *
+	 * PS：`RowMapper`是一个结果集与结果集中数据行数的包装。
+	 *
+	 * @param splitKey
+	 * @param clazz
+	 * @param name
+	 * @param value
+	 * @param <K>
+	 * @param <T>
+	 * @return
+	 */
 	protected <K, T> T doSelect(K splitKey, final Class<T> clazz, String name,
 			Object value) {
 		log.debug(
@@ -144,6 +162,7 @@ public class SimpleSplitJdbcTemplate extends SplitJdbcTemplate implements
 		String dbPrefix = splitTable.getDbNamePrefix();
 		String tablePrefix = splitTable.getTableNamePrefix();
 
+		// 数据库实例、数据库编号、表编号
 		int nodeNo = splitStrategy.getNodeNo(splitKey);
 		int dbNo = splitStrategy.getDbNo(splitKey);
 		int tableNo = splitStrategy.getTableNo(splitKey);
@@ -152,15 +171,19 @@ public class SimpleSplitJdbcTemplate extends SplitJdbcTemplate implements
 				"SimpleSplitJdbcTemplate.doSelect, splitKey={} dbPrefix={} tablePrefix={} nodeNo={} dbNo={} tableNo={}.",
 				splitKey, dbPrefix, tablePrefix, nodeNo, dbNo, tableNo);
 
+		// 根据结点获取数据库实例，从实例上获取具体的(模板)库
 		SplitNode sn = splitNdoes.get(nodeNo);
 		JdbcTemplate jt = getReadJdbcTemplate(sn);
 
+		// 使用工具类生成具体的分库分表的查询sql
 		SqlRunningBean srb = SqlUtil.generateSelectSql(name, value, clazz,
 				dbPrefix, tablePrefix, dbNo, tableNo);
 
 		log.debug(
 				"SimpleSplitJdbcTemplate.doSelect, the split SQL: {}, the split params: {}.",
 				srb.getSql(), srb.getParams());
+
+		// 使用JdbcTemplate执行生成的Sql，并使用ORM映射工具将结果转换成bean信息
 		T bean = jt.queryForObject(srb.getSql(), srb.getParams(),
 				new RowMapper<T>() {
 					public T mapRow(ResultSet rs, int rowNum)

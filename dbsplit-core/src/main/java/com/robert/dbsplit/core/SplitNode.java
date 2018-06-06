@@ -6,10 +6,16 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 
+/**
+ * 分割结点数据结构，数据库实例。
+ */
 public class SplitNode {
+	/** 主库 */
 	private JdbcTemplate masterTemplate;
+	/** 从库 */
 	private List<JdbcTemplate> slaveTemplates;
 
+	/** 原子变量：实现轮询从库 */
 	private AtomicLong iter = new AtomicLong(0);
 
 	public SplitNode() {
@@ -51,6 +57,11 @@ public class SplitNode {
 		this.slaveTemplates.remove(jdbcTemplate);
 	}
 
+	/**
+	 * 轮询读取从库。
+	 *
+	 * @return
+	 */
 	public JdbcTemplate getRoundRobinSlaveTempate() {
 		long iterValue = iter.incrementAndGet();
 

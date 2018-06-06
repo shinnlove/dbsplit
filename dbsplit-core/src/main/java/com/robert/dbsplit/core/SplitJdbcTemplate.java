@@ -28,6 +28,9 @@ import com.robert.dbsplit.core.sql.parser.SplitSqlParser;
 import com.robert.dbsplit.core.sql.parser.SplitSqlStructure;
 import com.robert.dbsplit.excep.NotSupportedException;
 
+/**
+ * 包含了Spring JdbcTemplate的API，持有分表容器和分表运行。
+ */
 public class SplitJdbcTemplate implements SplitJdbcOperations {
 	protected static final Logger log = LoggerFactory
 			.getLogger(SplitJdbcTemplate.class);
@@ -38,33 +41,67 @@ public class SplitJdbcTemplate implements SplitJdbcOperations {
 
 	protected boolean readWriteSeparate = false;
 
+	/**
+	 * 切分动作接口。
+	 *
+	 * @param <T>
+	 */
 	interface SplitAction<T> {
+
+		/**
+		 * 做切分动作。
+		 *
+		 * 使用`JdbcTemplate`对应的操作执行得到一个返回值为T类型的结果，如`Integer`。
+		 *
+		 * @param jt
+		 * @param sql
+		 * @return
+		 */
 		T doSplitAction(JdbcTemplate jt, String sql);
 	}
 
+	/**
+	 * 切分动作运行器。
+	 *
+	 */
 	class SplitActionRunner {
+
+		/**
+		 * 传入分隔键、原始sql，和具体动作(具体使用JdbcTemplate执行sql的代码)，来得到一个返回结果。
+		 *
+		 * @param splitKey		分隔符
+		 * @param sql			原始sql
+		 * @param splitAction	要做的具体切分动作
+		 * @param <T>			切分动作的返回值泛型
+		 * @param <K>			分隔符类型泛型
+		 * @return
+		 */
 		<T, K> T runSplitAction(K splitKey, String sql,
 				SplitAction<T> splitAction) {
 			log.debug("runSplitAction entry, splitKey {} sql {}", splitKey, sql);
 
+			// 解析原生SQL对应的数据库名、表名
 			SplitSqlStructure splitSqlStructure = SplitSqlParser.INST
 					.parseSplitSql(sql);
 
 			String dbName = splitSqlStructure.getDbName();
 			String tableName = splitSqlStructure.getTableName();
 
+			// 从容器的Map缓存中取出 key: dbName+tableName的表分片
 			SplitTable splitTable = splitTablesHolder.searchSplitTable(dbName,
 					tableName);
 
+			// 分表策略
 			SplitStrategy splitStrategy = splitTable.getSplitStrategy();
 
 			int nodeNo = splitStrategy.getNodeNo(splitKey);
 			int dbNo = splitStrategy.getDbNo(splitKey);
 			int tableNo = splitStrategy.getTableNo(splitKey);
 
+			// 取出分隔结点
 			List<SplitNode> splitNodes = splitTable.getSplitNodes();
-
 			SplitNode sn = splitNodes.get(nodeNo);
+
 			JdbcTemplate jt = getJdbcTemplate(sn, false);
 
 			sql = splitSqlStructure.getSplitSql(dbNo, tableNo);
@@ -113,7 +150,7 @@ public class SplitJdbcTemplate implements SplitJdbcOperations {
 		throw new NotSupportedException();
 	}
 
-	public <T, K> T query(K splitKey, String sql, ResultSetExtractor<T> rse)
+	public <T, K> T query(K splitKey, String sql, final ResultSetExtractor<T> rse)
 			throws DataAccessException {
 		return splitActionRunner.runSplitAction(splitKey, sql,
 				new SplitAction<T>() {
@@ -125,7 +162,7 @@ public class SplitJdbcTemplate implements SplitJdbcOperations {
 				});
 	}
 
-	public <K> void query(K splitKey, String sql, RowCallbackHandler rch)
+	public <K> void query(K splitKey, String sql, final RowCallbackHandler rch)
 			throws DataAccessException {
 		splitActionRunner.runSplitAction(splitKey, sql,
 				new SplitAction<Object>() {
@@ -137,7 +174,7 @@ public class SplitJdbcTemplate implements SplitJdbcOperations {
 				});
 	}
 
-	public <T, K> List<T> query(K splitKey, String sql, RowMapper<T> rowMapper)
+	public <T, K> List<T> query(K splitKey, String sql, final RowMapper<T> rowMapper)
 			throws DataAccessException {
 		return splitActionRunner.runSplitAction(splitKey, sql,
 				new SplitAction<List<T>>() {
@@ -457,7 +494,7 @@ public class SplitJdbcTemplate implements SplitJdbcOperations {
 	}
 
 	public <T, K> T queryForObject(K splitKey, String sql,
-			Class<T> requiredType, Object... args) throws DataAccessException {
+								   final Class<T> requiredType, final Object... args) throws DataAccessException {
 		return splitActionRunner.runSplitAction(splitKey, sql,
 				new SplitAction<T>() {
 					public T doSplitAction(JdbcTemplate jt, String sql) {
@@ -468,7 +505,7 @@ public class SplitJdbcTemplate implements SplitJdbcOperations {
 	}
 
 	public <K> Map<String, Object> queryForMap(K splitKey, String sql,
-			Object[] args, int[] argTypes) throws DataAccessException {
+											   final Object[] args, final int[] argTypes) throws DataAccessException {
 		return splitActionRunner.runSplitAction(splitKey, sql,
 				new SplitAction<Map<String, Object>>() {
 					public Map<String, Object> doSplitAction(JdbcTemplate jt,
@@ -481,7 +518,7 @@ public class SplitJdbcTemplate implements SplitJdbcOperations {
 	}
 
 	public <K> Map<String, Object> queryForMap(K splitKey, String sql,
-			Object... args) throws DataAccessException {
+											   final Object... args) throws DataAccessException {
 		return splitActionRunner.runSplitAction(splitKey, sql,
 				new SplitAction<Map<String, Object>>() {
 					public Map<String, Object> doSplitAction(JdbcTemplate jt,
@@ -585,7 +622,7 @@ public class SplitJdbcTemplate implements SplitJdbcOperations {
 		throw new NotSupportedException();
 	}
 
-	public <K> int update(K splitKey, String sql, PreparedStatementSetter pss)
+	public <K> int update(K splitKey, String sql, final PreparedStatementSetter pss)
 			throws DataAccessException {
 		return splitActionRunner.runSplitAction(splitKey, sql,
 				new SplitAction<Integer>() {
@@ -596,7 +633,18 @@ public class SplitJdbcTemplate implements SplitJdbcOperations {
 				});
 	}
 
-	public <K> int update(K splitKey, String sql, Object[] args, int[] argTypes)
+	/**
+	 * 传入具体取值类型的方法。
+	 *
+	 * @param splitKey
+	 * @param sql
+	 * @param args
+	 * @param argTypes
+	 * @param <K>
+	 * @return
+	 * @throws DataAccessException
+	 */
+	public <K> int update(K splitKey, String sql, final Object[] args, final int[] argTypes)
 			throws DataAccessException {
 		return splitActionRunner.runSplitAction(splitKey, sql,
 				new SplitAction<Integer>() {
@@ -607,7 +655,17 @@ public class SplitJdbcTemplate implements SplitJdbcOperations {
 				});
 	}
 
-	public <K> int update(K splitKey, String sql, Object... args)
+	/**
+	 * 只传入参数类型的方法。
+	 *
+	 * @param splitKey
+	 * @param sql
+	 * @param args
+	 * @param <K>
+	 * @return
+	 * @throws DataAccessException
+	 */
+	public <K> int update(K splitKey, String sql, final Object... args)
 			throws DataAccessException {
 
 		return splitActionRunner.runSplitAction(splitKey, sql,
@@ -683,6 +741,15 @@ public class SplitJdbcTemplate implements SplitJdbcOperations {
 		return getJdbcTemplate(sn, true);
 	}
 
+	/**
+	 * 获取一个`JdbcTemplate`，主库或者读库。
+	 *
+	 * 一个`Spring`的`JdbcTemplate`就是一个主库或者读库，具体的数据库。
+	 *
+	 * @param sn		表分片
+	 * @param read		是否读库
+	 * @return
+	 */
 	protected JdbcTemplate getJdbcTemplate(SplitNode sn, boolean read) {
 		if (!read)
 			return sn.getMasterTemplate();
@@ -692,4 +759,5 @@ public class SplitJdbcTemplate implements SplitJdbcOperations {
 
 		return sn.getMasterTemplate();
 	}
+
 }

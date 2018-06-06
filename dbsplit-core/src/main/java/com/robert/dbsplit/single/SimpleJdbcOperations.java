@@ -2,6 +2,9 @@ package com.robert.dbsplit.single;
 
 import java.util.List;
 
+/**
+ * 封装Jdbc基础操作，让所有操作都针对实体类进行的接口。
+ */
 public interface SimpleJdbcOperations {
 	public <T> void insert(T bean);
 

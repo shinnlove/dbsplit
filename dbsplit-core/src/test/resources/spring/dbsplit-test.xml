@@ -24,7 +24,7 @@
 		<property name="readWriteSeparate" value="${dbsplit.readWriteSeparate}" />
 	</bean>
 
-	<!-- SplitTablesHolder -->
+	<!-- SplitTablesHolder 多个表分片的容器类 -->
 
 	<bean name="splitTablesHolder" class="com.robert.dbsplit.core.SplitTablesHolder"
 		init-method="init">
@@ -35,7 +35,7 @@
 		</property>
 	</bean>
 
-	<!-- SplitTables -->
+	<!-- SplitTables，表分片，可能是垂直切分也可能是水平切分，不同的分片会持有若干个数据库实例 -->
 
 	<bean name="splitTable" class="com.robert.dbsplit.core.SplitTable"
 		init-method="init">
@@ -43,10 +43,13 @@
 		<property name="dbNamePrefix" value="test_db" />
 		<property name="tableNamePrefix" value="TEST_TABLE" />
 
+		<!-- 数据库2个、表4张 -->
 		<property name="dbNum" value="2" />
 		<property name="tableNum" value="4" />
 
+		<!-- 水平切分 -->
 		<property name="splitStrategyType" value="HORIZONTAL" />
+		<!-- 拥有两个数据库实例 -->
 		<property name="splitNodes">
 			<list>
 				<ref bean="splitNode1" />
@@ -58,27 +61,29 @@
 
 	</bean>
 
-	<!-- SplitNodes -->
+	<!-- SplitNodes：代表`数据库实例`，一个实例通常有一个主库和若干个从库 -->
 
+	<!-- 切分结点一：一主一从 -->
 	<bean name="splitNode1" class="com.robert.dbsplit.core.SplitNode">
 		<property name="masterTemplate" ref="masterTemplate0" />
 		<property name="slaveTemplates">
 			<list>
-				<ref bean="slaveTemplate00"></ref>
+				<ref bean="slaveTemplate00"/>
 			</list>
 		</property>
 	</bean>
 
+	<!-- 切分结点二：一主一从 -->
 	<bean name="splitNode2" class="com.robert.dbsplit.core.SplitNode">
 		<property name="masterTemplate" ref="masterTemplate1" />
 		<property name="slaveTemplates">
 			<list>
-				<ref bean="slaveTemplate10"></ref>
+				<ref bean="slaveTemplate10"/>
 			</list>
 		</property>
 	</bean>
 
-	<!-- Spring JdbcTemplates -->
+	<!-- Spring JdbcTemplates 使用4份数据源定义4个不同的jdbcTemplate模板 -->
 
 	<bean id="masterTemplate0" class="org.springframework.jdbc.core.JdbcTemplate"
 		abstract="false" lazy-init="false" autowire="default"
@@ -112,7 +117,7 @@
 		</property>
 	</bean>
 
-	<!-- DataSources -->
+	<!-- DataSources，定义一个base数据源、一主一从各自2份数据源，总计4个数据源。 -->
 
 	<bean name="baseDataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
 		<property name="driverClass">
